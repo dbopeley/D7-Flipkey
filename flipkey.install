@@ -5,54 +5,6 @@
 //Set your module name here. This has to stay here, because the install does not invoke the whole module and playing around with includes is not a good idea on install
 define('INSTALL_MODULE_NAME', 'Flipkey');
 
-/**
- * Implementation of hook_schema
- *
- * @return array
- */
-function flipkey_schema() {
-  $schema = array();
-  $schema['flipkey_reviews'] = array(
-    'fields' => array(
-      'flipkey_review_id' => array(
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE
-      ),      
-      
-      'flipkey_review_prid' => array(
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => ''
-      ),
-      
-      'flipkey_review_pnid' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0
-      ),
-      
-      'flipkey_review_xml' => array(
-        'type' => 'text',
-        'not null' => TRUE,
-      ),
-      
-      'flipkey_review_ts' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0
-      ),
-
-    ),
-    'primary key' => array('flipkey_review_id'),
-    'indexes' => array(),
-    'foreign keys' => array(),
-  );
-  return $schema;
-}
 
 
 /**
@@ -72,14 +24,11 @@ function flipkey_install() {
  */
 function flipkey_uninstall() {
 	
-	drupal_uninstall_schema('flipkey');
-  //Delete the system variables. 
-  variable_del('flipkey_api_key');
-  variable_del('flipkey_frontdesk_id');
-  variable_del('flipkey_property_id_key');
-  variable_del('flipkey_node_types');
-  variable_del('flipkey_last_updated_node');
-  //Set a message when we uninstall the module.
+  db_delete('variable')
+    ->condition('name', "flipkey_%", "LIKE")
+    ->execute();
+  
+  cache_clear_all('variables', 'cache_bootstrap');
   drupal_set_message( t('@module module uninstalled successfully.', array( '@module' => INSTALL_MODULE_NAME ) ) );
 }
 
