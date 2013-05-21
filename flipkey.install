@@ -1,0 +1,103 @@
+<?php
+/**
+ * Define install constants
+ */
+//Set your module name here. This has to stay here, because the install does not invoke the whole module and playing around with includes is not a good idea on install
+define('INSTALL_MODULE_NAME', 'Flipkey');
+
+/**
+ * Implementation of hook_schema
+ *
+ * @return array
+ */
+function flipkey_schema() {
+  $schema = array();
+  $schema['flipkey_reviews'] = array(
+    'fields' => array(
+      'flipkey_review_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),      
+      
+      'flipkey_review_prid' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      
+      'flipkey_review_pnid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0
+      ),
+      
+      'flipkey_review_xml' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      
+      'flipkey_review_ts' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0
+      ),
+
+    ),
+    'primary key' => array('flipkey_review_id'),
+    'indexes' => array(),
+    'foreign keys' => array(),
+  );
+  return $schema;
+}
+
+
+/**
+ * Implementation of hook_install.
+ */
+function flipkey_install() {
+	
+	//drupal_install_schema('flipkey');
+  //Set a message when we install the module
+  drupal_set_message( t('@module module has installed successfully. Please see README.txt for more information on this module.', array( '@module' => INSTALL_MODULE_NAME ) ) );
+}
+
+
+
+/**
+ * Implementation of hook_uninstall.
+ */
+function flipkey_uninstall() {
+	
+	drupal_uninstall_schema('flipkey');
+  //Delete the system variables. 
+  variable_del('flipkey_api_key');
+  variable_del('flipkey_frontdesk_id');
+  variable_del('flipkey_property_id_key');
+  variable_del('flipkey_node_types');
+  variable_del('flipkey_last_updated_node');
+  //Set a message when we uninstall the module.
+  drupal_set_message( t('@module module uninstalled successfully.', array( '@module' => INSTALL_MODULE_NAME ) ) );
+}
+
+/**
+ * Implementation of hook_enable.
+ */
+function flipkey_enable() {
+  //Set a message when we enable the module
+  drupal_set_message( t('@module module has been enabled successfully.', array( '@module' => INSTALL_MODULE_NAME ) ) );
+}
+
+
+
+
+/**
+ * Implementation of hook_disable.
+ */
+function flipkey_disable() {
+  //Set a message when we disable the module.
+  drupal_set_message( t('@module module has been disabled successfully.', array( '@module' => INSTALL_MODULE_NAME ) ) ); 
+}
