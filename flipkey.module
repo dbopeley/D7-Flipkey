@@ -156,10 +156,12 @@ function _flipkey_manual_update() {
 
 function _flipkey_import_reviews() {
   $flipkey_property_id_key = variable_get('flipkey_property_id_key', NULL);
+  $flipkey_review_key = variable_get('flipkey_review_key', NULL);
   $threshold = variable_get('flipkey_import_threshold',10);
   $ntypeskeyed = variable_get('flipkey_node_types',NULL);
   $lun = variable_get('flipkey_last_updated_node',0);
   $ntypes = array_values($ntypeskeyed);
+
 	$result = db_query("SELECT n.nid, n.title
 	    FROM {node} n 
 	    WHERE n.type IN (:nt)
@@ -173,45 +175,76 @@ function _flipkey_import_reviews() {
   	
 	$debug = array();
 	//while ($prop = db_fetch_array($allprops)) { 
-	foreach ($properties as $prop) {	
-
-		$cur_pnid = (int) $prop->nid;
-		$cur_tit = $prop->title;
-		if($cur_pnid > $last_updated_node){
-			$cur_node = node_load($cur_pnid, NULL, TRUE);
-			if(strstr($flipkey_property_id_key,'field')){
-				$item = field_get_items('node', $cur_node, $flipkey_property_id_key);
-				$cur_prid = $item[0]['value'];		
-			}else{
-				//lame hard coded hack  this needs to be figured out
-				$cur_prid = $cur_node->escapia_unit_descriptive_info['custom']['Custom9'][0];
-			}
-			
-			if($cur_prid){
-				
-				//configure data for review import
-				$import_cfg = array(
-				'prid' => $cur_prid, //keyed field in cck type assigned to flipkey remote id for property
-				'pnid' => $cur_pnid,  //property cck node id
-				);
-
-				$imported_review = flipkey::_importFlipkeyReview($import_cfg);
-				
-				if(!empty($imported_review['stats']['reviewcount'])){
-				  $reviewcount = $imported_review['stats']['reviewcount'];
-				}else{
-				  $reviewcount = 0;
-				}
-				$encoded_review = json_encode($imported_review);
-				$cur_node->field_flipkey_reviews[$cur_node->language][0]['value'] = $encoded_review;
-				node_save($cur_node);
-				//compile a message string for set message in mnual update
-				$mess[] = $cur_tit.' | '.$cur_pnid.' | '.$cur_prid.' | '.$reviewcount.' reviews<br />';
-			}else{
-			  $mess_err[] = $cur_tit.' | '.$cur_pnid.' | No Flipkey Property ID available for this node.<br />';
-			}
-		}	
-	}
+	if($flipkey_property_id_key && $flipkey_review_key){
+  	foreach ($properties as $prop) {	
+  
+  		$cur_pnid = (int) $prop->nid;
+  		$cur_tit = $prop->title;
+  		if($cur_pnid > $last_updated_node){
+  			$cur_node = node_load($cur_pnid, NULL, TRUE);
+  			if(strstr($flipkey_property_id_key,'field')){
+  				$item = field_get_items('node', $cur_node, $flipkey_property_id_key);
+  				$cur_prid = $item[0]['value'];		
+  			}else{
+  				//lame hard coded hack  this needs to be figured out
+  				$cur_prid = $cur_node->escapia_unit_descriptive_info['custom']['Custom9'][0];
+  			}
+  			
+  			if($cur_prid){
+  				
+  				//configure data for review import
+  				$import_cfg = array(
+  				'prid' => $cur_prid, //keyed field in cck type assigned to flipkey remote id for property
+  				'pnid' => $cur_pnid,  //property cck node id
+  				);
+  
+  				$imported_review = flipkey::_importFlipkeyReview($import_cfg);
+  				
+  				if(!empty($imported_review['stats']['reviewcount'])){
+  				  $reviewcount = $imported_review['stats']['reviewcount'];
+  				}else{
+  				  $reviewcount = 0;
+  				}
+  	
+  				$encoded_review = json_encode($imported_review);
+  				//$cur_node->field_flipkey_reviews[$cur_node->language][0]['value'] = $encoded_review;
+  				
+  				$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+  				
+  				$save_review = FALSE;
+  				if($flipkey_review_key){ //determine if review field has even been defined in module
+  
+  				  $review_field_info = field_info_field($flipkey_review_key); //get the field info so we can assure the field exists in the correct bundle
+  
+  				  $bundle_node_types = $review_field_info['bundles']['node']; //only works with NODES 
+  				  //so find which node types have had the field properly added to them
+  				  foreach ($bundle_node_types as $node_type) {
+  				    if(in_array($node_type, $ntypes)){ // we have a valid field to stre the review in
+  				       $save_review = TRUE; // if we get a match then set flag to add review and save node
+  				    }
+  				  }
+            if($save_review){
+  				    $cur_node->{$flipkey_review_key}[$cur_node->language][0]['value'] = $encoded_review;
+  				    node_save($cur_node);
+  				    $mess[] = $cur_tit.' | '.$cur_pnid.' | '.$cur_prid.' | '.$reviewcount.' reviews<br />';
+            }
+  				}
+  
+  			}else{
+  			  $mess_err[] = $cur_tit.' | '.$cur_pnid.' | No Flipkey Property ID available for this node.<br />';
+  			}
+  		}	
+  	}
+  	
+  }else{
+    if(!$flipkey_property_id_key){
+      $configmess .= 'Please ensure that you have defined the field storing the Flipkey property ID<br />';
+    }
+    if(!$flipkey_review_key){
+      $configmess .= 'Please ensure that you have defined the field storing in which the Flipkey review is to be stored.<br />';
+    }
+    drupal_set_message($configmessrevie);
+  }
 
 	if($propcount != $threshold){
 	  variable_set('flipkey_last_updated_node', 0);

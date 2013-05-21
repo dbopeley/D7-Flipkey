@@ -38,15 +38,7 @@ function flipkey_admin_settings() {
     '#weight'           => -50,
   );
     
-  $form['flipkey_config_fs']['flipkey_property_id_key'] = array(
-    '#title'         => t('Property ID key'),
-    '#description'   => t('Select the $node->%key that you wish to assign as the property id. You need this to get the review for a specific property.'),
-    '#type'          => 'textfield',
-  		'#default_value'    => variable_get('flipkey_property_id_key', NULL),
-    '#required'      => TRUE,
-    '#max_length'    => 36,
-    '#weight'        => -49,
-  );
+
   
   $node_types = node_type_get_types();
   $node_type_options = array();
@@ -63,8 +55,29 @@ function flipkey_admin_settings() {
     '#required'      => TRUE,
     '#options'       => $node_type_options,
     '#default_value' => variable_get('flipkey_node_types',array()),
-    '#weight'        => -48,
+    '#weight'        => -49,
   );
+  
+  $form['flipkey_config_fs']['flipkey_property_id_key'] = array(
+      '#title'         => t('Property ID key'),
+      '#description'   => t('For the Flipkey module to properly identify properties to store reviews for, there must be a field in the node content type that stores the Flipkey property Id. In some cases this field may already be available from the reservation system\'s imported data. If that is the case then you need only identify the field here. If not already present you will need to add a field to the content type and enter the resulting field name here.'),
+      '#type'          => 'textfield',
+      '#default_value'    => variable_get('flipkey_property_id_key', NULL),
+      '#required'      => TRUE,
+      '#max_length'    => 36,
+      '#weight'        => -48,
+  );
+  
+  $form['flipkey_config_fs']['flipkey_review_key'] = array(
+      '#title'         => t('Review Field key'),
+      '#description'   => t('You will need to add a text field to the selected content types above to store the flipkey reviews. Once added enter the field id here. This will enable the module to correctly target that field when reviews are imported from Flipkey.'),
+      '#type'          => 'textfield',
+      '#default_value'    => variable_get('flipkey_review_key', NULL),
+      '#required'      => TRUE,
+      '#max_length'    => 36,
+      '#weight'        => -47,
+  );
+  
     
       //Main Form settings.
   
