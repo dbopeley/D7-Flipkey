@@ -7,111 +7,52 @@ define("FLIPKEY_BASE_URL_FEEDS", 'data.flipkey.com/feeds/reviews_remoteid');
 
 //Module Include Files.
 include_once( FLIPKEY_MODULE_PATH. '/includes/flipkey.class.inc' );
-//include_once( FLIPKEY_MODULE_PATH. '/flipkey.admin.inc' );
+
 
 /**
  * Hook Menu
  */
-
-
-
 function flipkey_menu() {
-	
 	$items = array();
+
 	$items['admin/config/services/flipkey'] = array(
-			'title' => 'FlipKey Reviews',
-			'description' => 'Configure Flipkey Reviews',
-			'page callback' => 'drupal_get_form',
-			'page arguments' => array('flipkey_admin_settings'),
-			'access arguments' => array('administer site configuration'),
-			'type' => MENU_NORMAL_ITEM,
-			'file' => 'flipkey.admin.inc',
+		'title'            => 'FlipKey Reviews Configuration',
+		'page callback'    => 'drupal_get_form',
+		'page arguments'   => array('flipkey_admin_settings'),
+		'access callback'  => 'user_access',
+		'access arguments' => array('administer site configuration'),
+		'description'      => 'Configure Flipkey.',
+		'file'             => 'flipkey.admin.inc',
+		'type'             => MENU_NORMAL_ITEM,
 	);
-	
-	
+
+	$items['admin/config/services/flipkey/configure'] = array(
+		'title'  => 'Flipkey Reviews Configuration',
+		'type'   => MENU_DEFAULT_LOCAL_TASK,
+		'weight' => 10,
+	);
+
+
 	$items['flipkey/update/all'] = array(
-			'page callback'     => '_flipkey_manual_update',
-			'type'              => MENU_CALLBACK,
-			'access arguments'  => array('administer site configuration'),
-	);
-	
-	return $items;
-}
-
-
-/*
-function flipkey_menu() {
-  $items = array();
-  //Main admin menu.
-  $items['admin/config/services/flipkey'] = array(
-    'title'             => t('FlipKey Reviews'),
-    'page callback'     => 'drupal_get_form',
-    'page arguments'    => array('_flipkey_main_settings'),
-    'type'              => MENU_NORMAL_ITEM,
-    'access arguments'  => array('administer site configuration'),
-  );
-  //Default local menu.
-  $items['admin/config/services/flipkey/main'] = array(
-    'title'             => t('Main Panel'),
-    'page callback'     => 'drupal_get_form',
-    'page arguments'    => array('_flipkey_main_settings'),
-    'type'              => MENU_DEFAULT_LOCAL_TASK,
-    'access arguments'  => array('administer site configuration'),
-    'weight'            => -100,
-  );
-  
-  
-  $items['flipkey/update/all'] = array(
-    'page callback'     => '_flipkey_manual_update',
-    'type'              => MENU_CALLBACK,
+		'page callback'     => '_flipkey_manual_update',
+		'type'              => MENU_CALLBACK,
 		'access arguments'  => array('administer site configuration'),
-  );
-  return $items;
-}
-*/
+	);
 
+	$items['admin/config/services/flipkey/tools'] = array(
+		'title'            => 'Flipkey Tools',
+		'page callback'    => 'drupal_get_form',
+		'page arguments'   => array('flipkey_admin_tools'),
+		'access callback'  => 'user_access',
+		'access arguments' => array('administer site configuration'),
+		'description'      => 'FLipkey Tools.',
+		'file'             => 'flipkey.tools.inc',
+		'type'             => MENU_LOCAL_TASK,
+		'weight'           => 20,
+	);
 
-/**
- * Hook Node API
- */
-//function flipkey_nodeapi( &$node, $op, $a3 = NULL, $a4 = NULL ) {
-function flipkey_node_load($nodes, $types){
-
-//$flipkey_node_types = variable_get('flipkey_node_types',NULL);
-  $flipkey_node_types = false; //mod dont proceed here adding review to node on import
-    	if($flipkey_node_types){
-    		foreach ($nodes as $node) {
-	    		foreach ($types as $nodetype) {
-			      	if (in_array($nodetype, $flipkey_node_types)) {
-				        $property_id_key = variable_get('flipkey_property_id_key', NULL);
-				       			        
-				        $review_widget = flipkey::_getFlipkeyReview($node->$property_id_key, $node->nid);
-				        $review = theme('flipkey_widget', array('widget' => $review_widget));   
-				        if (!empty($review)) {
-				          //If we have a review that has themed output, then we add it to the node object, so you can theme it at your leisure.
-				          $node->flipkey_review = $review;
-				      
-				        }
-				        
-
-		      		}
-	    		}
-    		}
-    	}
-
-}
-/**
- * Implements hook_theme().
- */
-function flipkey_theme() {
-  return array(
-  		'flipkey_widget' => array(
-  				'template' => 'flipkey-widget', // define xxx-xxx.tpl.php inside module
-  				'path' => drupal_get_path('module', 'flipkey').'/theme',
-  		    'variables' => array('widget' => null),
-  		),
-  );
-}
+	return $items;
+	}
 
 
 function flipkey_preprocess_flipkey_widget(&$vars) {
@@ -120,7 +61,7 @@ function flipkey_preprocess_flipkey_widget(&$vars) {
       'width' => flipkey::_calculateRating(123, $vars['widget']['stats']['rating']),
       'max'   => 5,
   );
-  
+
   //Loop through The reviews, and add in parameters for overall_rating information.
   foreach ($vars['widget']['reviews'] as $key => $review) {
     $vars['widget']['reviews'][$key]['data'] = array(
@@ -143,132 +84,201 @@ function flipkey_theme_registry_alter(&$theme_registry) {
 
 
 function flipkey_cron() {
-  
-  //_flipkey_import_reviews();
-  
+	$cron_enabled = variable_get('flipkey_cron_switch', 0);
+	if ($cron_enabled) {
+		_flipkey_import_reviews();
+	}
 }
 
+
 function _flipkey_manual_update() {
- 
   _flipkey_import_reviews();
- 
 }
 
 function _flipkey_import_reviews() {
-  $flipkey_property_id_key = variable_get('flipkey_property_id_key', NULL);
-  $flipkey_review_key = variable_get('flipkey_review_key', NULL);
-  $threshold = variable_get('flipkey_import_threshold',10);
-  $ntypeskeyed = variable_get('flipkey_node_types',NULL);
-  $lun = variable_get('flipkey_last_updated_node',0);
-  $ntypes = array_values($ntypeskeyed);
+	$flipkey_property_id_key = variable_get('flipkey_property_id_key', NULL);
+	$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+	$threshold = (int) variable_get('flipkey_import_threshold',10);
+	$ntypeskeyed = variable_get('flipkey_node_types',NULL);
+	$lun = variable_get('flipkey_last_updated_node',0);
+	$ntypes = array_values($ntypeskeyed);
+	$mess = array();
+	$mess_err = array();
 
 	$result = db_query("SELECT n.nid, n.title
-	    FROM {node} n 
-	    WHERE n.type IN (:nt)
-	    AND
-	    n.nid > :lun
-	    ORDER BY nid ASC
-	    LIMIT 10", array(':nt' => array('property'),':lun' => $lun));
-	
+	FROM {node} n
+	WHERE n.type IN (:nt)
+	AND
+	n.nid > :lun
+	ORDER BY nid ASC
+	LIMIT $threshold", array(':nt' => $ntypes ,':lun' => $lun));
+
 	$properties = $result->fetchAll();
-  $propcount = $result->rowCount();
-  	
-	$debug = array();
-	//while ($prop = db_fetch_array($allprops)) { 
+	$propcount = $result->rowCount();
+
+
 	if($flipkey_property_id_key && $flipkey_review_key){
-  	foreach ($properties as $prop) {	
-  
-  		$cur_pnid = (int) $prop->nid;
-  		$cur_tit = $prop->title;
-  		if($cur_pnid > $last_updated_node){
-  			$cur_node = node_load($cur_pnid, NULL, TRUE);
-  			if(strstr($flipkey_property_id_key,'field')){
-  				$item = field_get_items('node', $cur_node, $flipkey_property_id_key);
-  				$cur_prid = $item[0]['value'];		
-  			}else{
-  				//lame hard coded hack  this needs to be figured out
-  				$cur_prid = $cur_node->escapia_unit_descriptive_info['custom']['Custom9'][0];
-  			}
-  			
-  			if($cur_prid){
-  				
-  				//configure data for review import
-  				$import_cfg = array(
-  				'prid' => $cur_prid, //keyed field in cck type assigned to flipkey remote id for property
-  				'pnid' => $cur_pnid,  //property cck node id
-  				);
-  
-  				$imported_review = flipkey::_importFlipkeyReview($import_cfg);
-  				
-  				if(!empty($imported_review['stats']['reviewcount'])){
-  				  $reviewcount = $imported_review['stats']['reviewcount'];
-  				}else{
-  				  $reviewcount = 0;
-  				}
-  	
-  				$encoded_review = json_encode($imported_review);
-  				//$cur_node->field_flipkey_reviews[$cur_node->language][0]['value'] = $encoded_review;
-  				
-  				$flipkey_review_key = variable_get('flipkey_review_key', NULL);
-  				
-  				$save_review = FALSE;
-  				if($flipkey_review_key){ //determine if review field has even been defined in module
-  
-  				  $review_field_info = field_info_field($flipkey_review_key); //get the field info so we can assure the field exists in the correct bundle
-  
-  				  $bundle_node_types = $review_field_info['bundles']['node']; //only works with NODES 
-  				  //so find which node types have had the field properly added to them
-  				  foreach ($bundle_node_types as $node_type) {
-  				    if(in_array($node_type, $ntypes)){ // we have a valid field to stre the review in
-  				       $save_review = TRUE; // if we get a match then set flag to add review and save node
-  				    }
-  				  }
-            if($save_review){
-  				    $cur_node->{$flipkey_review_key}[$cur_node->language][0]['value'] = $encoded_review;
-  				    node_save($cur_node);
-  				    $mess[] = $cur_tit.' | '.$cur_pnid.' | '.$cur_prid.' | '.$reviewcount.' reviews<br />';
-            }
-  				}
-  
-  			}else{
-  			  $mess_err[] = $cur_tit.' | '.$cur_pnid.' | No Flipkey Property ID available for this node.<br />';
-  			}
-  		}	
-  	}
-  	
-  }else{
-    if(!$flipkey_property_id_key){
-      $configmess .= 'Please ensure that you have defined the field storing the Flipkey property ID<br />';
-    }
-    if(!$flipkey_review_key){
-      $configmess .= 'Please ensure that you have defined the field storing in which the Flipkey review is to be stored.<br />';
-    }
-    drupal_set_message($configmessrevie);
-  }
+		foreach ($properties as $prop) {
+			$cur_pnid = (int) $prop->nid;
+			$cur_tit = $prop->title;
+			if($cur_pnid > $lun){
+				$cur_node = node_load($cur_pnid, NULL, TRUE);
+
+				if(strstr($flipkey_property_id_key,'field')){
+					$item = field_get_items('node', $cur_node, $flipkey_property_id_key);
+					$cur_prid = $item[0]['value'];
+				}else if($flipkey_property_id_key == 'title'){
+					$cur_prid = $cur_node->title;
+				}
+
+				if($cur_prid){
+					$cur_prid = str_replace("'",'', $cur_prid);
+					$imported_review_json = flipkey::_importFlipkeyReview($cur_prid);
+
+					if(is_array($imported_review_json) && isset($imported_review_json['error'])) {
+
+						switch($imported_review_json['error']) {
+							case'No Reviews':
+								$mess_err[] = $cur_tit . ' | ' . $cur_pnid . ' | ' . $cur_prid . ' | no reviews<br />';
+							break;
+							case'Response Error':
+								$mess_err[] = $cur_tit . ' | ' . $cur_pnid . ' | ' . $cur_prid . ' | Response Error<br />';
+							break;
+							case'Request Error':
+								$mess_err[] = $cur_tit . ' | ' . $cur_pnid . ' | ' . $cur_prid . ' | Request Error<br />';
+							break;
+							case'Configuration Error':
+								$mess_err[] = $cur_tit . ' | ' . $cur_pnid . ' | ' . $cur_prid . ' | Configuration Error<br />';
+							break;
+							default:
+								$mess_err[] = $cur_tit . ' | ' . $cur_pnid . ' | ' . $cur_prid . ' | ' . $imported_review_json['error'] . '<br />';
+							break;
+						}
+
+					}else{
+
+						$imported_review_decoded = json_decode($imported_review_json, true);
+						$reviewcount = $imported_review_decoded['stats']['reviewcount'];
+						$cur_node->{$flipkey_review_key}[$cur_node->language][0]['value'] = $imported_review_json;
+						node_save($cur_node);
+						$mess[] = $cur_tit.' | '.$cur_pnid.' | '.$cur_prid.' | '.$reviewcount.' reviews<br />';
+					}
+
+				}else{
+					$mess_err[] = $cur_tit.' | '.$cur_pnid.' | No Flipkey Property ID available for this node.<br />';
+				}
+			}
+		}
+
+	}else{
+		$configmess = '';
+		if(!$flipkey_property_id_key){
+			$configmess .= 'Please ensure that you have defined the field storing the Flipkey property ID<br />';
+		}
+		if(!$flipkey_review_key){
+			$configmess .= 'Please ensure that you have defined the field storing in which the Flipkey review is to be stored.<br />';
+		}
+		drupal_set_message($configmess);
+	}
 
 	if($propcount != $threshold){
-	  variable_set('flipkey_last_updated_node', 0);
+		variable_set('flipkey_last_updated_node', 0);
 	}else{
-	  variable_set('flipkey_last_updated_node', $cur_pnid);
+		variable_set('flipkey_last_updated_node', $cur_pnid);
 	}
-	
+
 	/*
 	if this was a manual update then find destination, set mess, and goto destination
-	to return to flipkey admin panel 
-	*/	
-  if ($_GET['destination']) { 
-  	if(is_array($mess)){	
-  	$messstr = implode('',$mess);
-  	}
-  	if(is_array($mess_err)){	
-  	$messerrstr = implode('',$mess_err);
-  	}
-  	$mess = t('<table style="border:solid 1px #000000;"><tr><td valign="top">The following properties were updated successfully:<br />'.$messstr.'</td></tr></table>');
-  	  	$mess2 = t('<table style="border:solid 1px #000000;"><tr><td valign="top">The following properties did not:<br />'.$messerrstr.'</td></tr></table>');
-    drupal_set_message($mess);
-     drupal_set_message($mess2);
-    drupal_goto($_GET['destination']);
-  }
+	to return to flipkey admin panel
+	*/
+	if ($_GET['destination']) {
+		if(is_array($mess)){
+			$messstr = implode('',$mess);
+		}
+		if(is_array($mess_err)){
+			$messerrstr = implode('',$mess_err);
+		}
 
+		$mess = t('<table style="border:solid 1px #000000;"><tr><td valign="top">The following properties were updated successfully:<br />'.$messstr.'</td></tr></table>');
+		$mess2 = t('<table style="border:solid 1px #000000;"><tr><td valign="top">The following properties did not:<br />'.$messerrstr.'</td></tr></table>');
+		drupal_set_message($mess);
+		drupal_set_message($mess2);
+		drupal_goto($_GET['destination']);
+	}
+}
 
+function flipkey_execute_individual_update($nid){
+	$cur_node = node_load($nid);
+	$flipkey_property_id_key = variable_get('flipkey_property_id_key', NULL);
+	$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+	$cur_prid = FALSE;
+	if(strstr($flipkey_property_id_key,'field')){
+		$item = field_get_items('node', $cur_node, $flipkey_property_id_key);
+		$cur_prid = $item[0]['value'];
+	}else if($flipkey_property_id_key == 'title'){
+		$cur_prid = $cur_node->title;
+	}
+
+	if($cur_prid){
+		$cur_prid = str_replace("'",'', $cur_prid);
+		$imported_review = flipkey::_importFlipkeyReview($cur_prid);
+
+		if(is_array($imported_review) && $imported_review['error']){
+			switch($imported_review['error']){
+				case'No Reviews':
+					drupal_set_message(t("There are no reviews for this property."), 'warning');
+					break;
+				case'Response Error':
+					drupal_set_message(t("Flipkey Returned a 'RESPONSE ERROR'. It is likely the flipkey Property ID id incorrect."), 'warning');
+					break;
+				case'Request Error':
+					drupal_set_message(t("Flipkey returned an Invalid Request Error."), 'warning');
+					break;
+				case'Configuration Error':
+					drupal_set_message(t("The Flipkey module appears to NOT be configured correctly. Ensure that the API Key and Front Desk ID are configured correctly."), 'warning');
+					break;
+			}
+		}else{
+			$cur_node->{$flipkey_review_key}[$cur_node->language][0]['value'] = $imported_review;
+			node_save($cur_node);
+			$title = $cur_node->title;
+			drupal_set_message(t("Property Reviews for $title have been updated."), 'status');
+		}
+
+	}
+}
+
+function flipkey_entity_view( $entity, $type, $view_mode, $langcode ) {
+
+	switch ($type) {
+		case 'node':
+			$ntypeskeyed = variable_get('flipkey_node_types',NULL);
+			$ntypes = array_values($ntypeskeyed);
+			if(in_array($entity->type, $ntypes)) {
+				$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+
+				$entity->content[$flipkey_review_key] = array(
+					'#theme' => 'flipkey_reviews',
+					'#entity' => $entity,
+					'#template' => 'flipkey-widget',
+					'#review_field_key' => $flipkey_review_key
+				);
+			}
+			break;
+	}
+}
+
+/**
+ * Implements hook_theme().
+ */
+function flipkey_theme() {
+
+	$return = array();
+	$return['flipkey_reviews'] = array(
+		'render element' => 'element',
+		'file' => 'flipkey.theme.inc',
+		'template' => 'templates/flipkey-widget',
+	);
+
+	return $return;
 }
