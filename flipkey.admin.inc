@@ -101,6 +101,24 @@ function flipkey_admin_settings() {
     '#weight'        => -44,
   );
 
+  $form['flipkey_config_fs']['flipkey_rating_squelch'] = array(
+    '#title'         => t('Rating Squelch'),
+    '#description'   => t('Set minimum star rating allowed'),
+    '#type'          => 'select',
+    '#options' => array(0=>'Show All', 1=>'1', 2=>'2', 3=>'3', 4=>'4', 5=>'5' ),
+    '#default_value'    => variable_get('flipkey_rating_squelch', 0),
+    '#weight'        => -43,
+  );
+
+  $form['flipkey_config_fs']['flipkey_year_squelch'] = array(
+    '#title'         => t('Year Squelch'),
+    '#description'   => t('Set maximum years in past to show reviews for'),
+    '#type'          => 'select',
+    '#options' => array(0=>'No limit', 1=>'1', 2=>'2', 3=>'3', 4=>'4', 5=>'5' ),
+    '#default_value'    => variable_get('flipkey_year_squelch', 0),
+    '#weight'        => -42,
+  );
+
 
   $form['#validate'][] = 'flipkey_admin_settings_validate';
   return system_settings_form($form);

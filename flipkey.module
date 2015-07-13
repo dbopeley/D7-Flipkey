@@ -263,6 +263,13 @@ function flipkey_entity_view( $entity, $type, $view_mode, $langcode ) {
 					'#template' => 'flipkey-widget',
 					'#review_field_key' => $flipkey_review_key
 				);
+
+				$entity->content['field_flipkey_stars'] = array(
+					'#theme' => 'flipkey_stars',
+					'#entity' => $entity,
+					'#template' => 'flipkey-stars-widget',
+					'#review_field_key' => $flipkey_review_key
+				);
 			}
 			break;
 	}
@@ -278,6 +285,11 @@ function flipkey_theme() {
 		'render element' => 'element',
 		'file' => 'flipkey.theme.inc',
 		'template' => 'templates/flipkey-widget',
+	);
+	$return['flipkey_stars'] = array(
+		'render element' => 'element',
+		'file' => 'flipkey.theme.inc',
+		'template' => 'templates/flipkey-stars-widget',
 	);
 
 	return $return;

@@ -1,0 +1,54 @@
+.flipkey-widget .body-review-container {
+  clear: both;
+  overflow: hidden;
+  padding: 5px;
+}
+.flipkey-widget .body-review {
+  clear: both;
+  display: block;
+  width: 99%;
+}
+.flipkey-widget .review-heading-span {
+  float: right;
+}
+.flipkey-widget .rating-d {
+  background: url('../images/rating-default.png') no-repeat scroll 0 -22px transparent;
+  display: inline-block;
+  height: 21px;
+  margin-left: 1px;
+  margin-top: 2px;
+  overflow: hidden;
+  position: relative;
+  text-indent: -10001px;
+  vertical-align: middle;
+  width: 123px;
+}
+.flipkey-widget .rating-d span {
+  background: url('../images/rating-default.png') no-repeat scroll 0 0 transparent;
+  height: 21px;
+  left: 0;
+  position: absolute;
+  text-indent: -10001px;
+  top: 0;
+  width: 0;
+}
+.flipkey-widget .rating-a {
+  background: url('../images/rating-default-small.png') no-repeat scroll 0 -17px transparent;
+  display: inline-block;
+  height: 17px;
+  margin-top: 3px;
+  overflow: hidden;
+  position: relative;
+  text-indent: -10001px;
+  vertical-align: middle;
+  width: 100px;
+}
+.flipkey-widget .rating-a span {
+  background: url('../images/rating-default-small.png') no-repeat scroll 0 0 transparent;
+  height: 17px;
+  left: 0;
+  position: absolute;
+  text-indent: -10001px;
+  top: 0;
+  width: 0;
+}

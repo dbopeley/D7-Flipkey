@@ -19,9 +19,9 @@ $id = isset($widget['id']) ? $widget['id'] : mt_rand(99999, 9999999);
     </span>
     </p>
   </div>
-  <div class="body_review_container">
+  <div class="body-review-container">
     <?php foreach ($widget['reviews'] as $id => $row): ?>
-      <div class="body_review">
+      <div class="body-review">
         <h3 class="review-title">"<?php print $row['title']; ?>"</h3>
         <span class="rating-a">
           <span style="width: <?php print $row['data']['width']; ?>px;"><?php print $row['rating']; ?></span> of <?php print $widget['stats']['data']['max']; ?>
@@ -31,7 +31,7 @@ $id = isset($widget['id']) ? $widget['id'] : mt_rand(99999, 9999999);
           <p class="manager_header"><strong>Manager Response:</strong></p>
           <p class="response_text"><em><?php print $row['mgrtext']; ?></em></p>
         <?php endif; ?>
-        <p style="float: right;" class="review_heading_span">
+        <p class="review-heading-span">
           -<?php print $row['displayname']; ?> on <?php print $row['fdate']; ?>
         </p>
         <div class="clearfix">&nbsp;</div>

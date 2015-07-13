@@ -1,5 +1,5 @@
 name           = Flipkey
-description    = Imports Flipkey reviews for display on assigned content type nodes.
-version        = 7.x-2.1
+description    = Imports Flipkey reviews for display on assigned entity bundles.
+version        = 7.x-2.2-dev
 package        = Flipkey
 core           = 7.x
