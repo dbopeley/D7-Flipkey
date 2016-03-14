@@ -50,6 +50,31 @@ function flipkey_menu() {
 		'type'             => MENU_LOCAL_TASK,
 		'weight'           => 20,
 	);
+	$items['admin/vrweb/flipkey'] = array(
+		'title'            => 'FlipKey',
+		'page callback'    => 'drupal_get_form',
+		'page arguments'   => array('flipkey_admin_settings'),
+		'access arguments' => array('administer vrweb'),
+		'description'      => 'Configure Flipkey.',
+		'file'             => 'flipkey.admin.inc',
+		'type'             => MENU_NORMAL_ITEM,
+	);
+	// Default local task for general settings form.
+	$items['admin/vrweb/flipkey/default'] = array(
+		'title' => 'Flipkey Config',
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+		'weight' => 40,
+	);
+	$items['admin/vrweb/flipkey/tools'] = array(
+		'title'            => 'Flipkey Tools',
+		'page callback'    => 'drupal_get_form',
+		'page arguments'   => array('flipkey_admin_tools'),
+		'access arguments' => array('administer vrweb'),
+		'description'      => 'FLipkey Tools.',
+		'file'             => 'flipkey.tools.inc',
+		'type'             => MENU_LOCAL_TASK,
+		'weight'           => 50,
+	);
 
 	return $items;
 	}
@@ -253,23 +278,29 @@ function flipkey_entity_view( $entity, $type, $view_mode, $langcode ) {
 	switch ($type) {
 		case 'node':
 			$ntypeskeyed = variable_get('flipkey_node_types',NULL);
-			$ntypes = array_values($ntypeskeyed);
-			if(in_array($entity->type, $ntypes)) {
-				$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+			if($ntypeskeyed) {
+				$ntypes = array_values($ntypeskeyed);
+				if (in_array($entity->type, $ntypes)) {
+					$flipkey_review_key = variable_get('flipkey_review_key', NULL);
+					$flipkey_star_key = variable_get('flipkey_star_key', 'field_flipkey_stars');
+					$entity->content[$flipkey_review_key] = array(
+						'#theme' => 'flipkey_reviews',
+						'#entity' => $entity,
+						'#template' => 'flipkey-widget',
+						'#review_field_key' => $flipkey_review_key
+					);
 
-				$entity->content[$flipkey_review_key] = array(
-					'#theme' => 'flipkey_reviews',
-					'#entity' => $entity,
-					'#template' => 'flipkey-widget',
-					'#review_field_key' => $flipkey_review_key
-				);
 
-				$entity->content['field_flipkey_stars'] = array(
-					'#theme' => 'flipkey_stars',
-					'#entity' => $entity,
-					'#template' => 'flipkey-stars-widget',
-					'#review_field_key' => $flipkey_review_key
-				);
+
+					$entity->content[$flipkey_star_key] = array(
+						'#theme' => 'flipkey_stars',
+						'#entity' => $entity,
+						'#template' => 'flipkey-stars-widget',
+						'#star_field_key' => $flipkey_star_key,
+						'#review_field_key' => $flipkey_review_key
+					);
+
+				}
 			}
 			break;
 	}
@@ -293,4 +324,73 @@ function flipkey_theme() {
 	);
 
 	return $return;
+}
+
+
+function flipkey_local_reviews($nid){
+	$local_reviews_enabled = false;
+	$display_local_reviews = true;
+	if(module_exists('trt_local_reviews')){
+		$local_reviews_enabled = true;
+	}
+	//insert local reviews
+	if($display_local_reviews && $local_reviews_enabled && $nid) {
+
+		$query = new EntityFieldQuery();
+
+		$query->entityCondition('entity_type', 'node')
+			->entityCondition('bundle', 'local_review')
+			->propertyCondition('status', NODE_PUBLISHED)
+			->fieldCondition('field_local_review_property', 'target_id', $nid, '=')
+			->addMetaData('account', user_load(1)); // Run the query as user 1.
+
+		$result = $query->execute();
+
+		if (isset($result['node'])) {
+			$local_review_nids = array_keys($result['node']);
+			$local_reviews = entity_load('node', $local_review_nids);
+
+			if(!empty($local_reviews)) {
+				$local_review_arr = array();
+				foreach ($local_reviews as $i => $lr) {
+
+					$width = flipkey::_calculateRating(100, $lr->field_local_review_rating[LANGUAGE_NONE][0]['value']);
+					if(isset($lr->field_local_review_managertext[LANGUAGE_NONE])){
+						$mgrtext = $lr->field_local_review_managertext[LANGUAGE_NONE][0]['value'];
+						if(isset($lr->field_local_review_mgrdate[LANGUAGE_NONE])){
+							$mgrdate = $lr->field_local_review_mgrdate[LANGUAGE_NONE][0]['value'];
+						}else{
+							$mgrdate = '';
+						}
+					}else{
+						$mgrtext = '';
+						$mgrdate = '';
+					}
+					$lr_item = array(
+						'@attributes' => array('type' => 'struct'),
+						'id' => $lr->nid,
+						'username' => $lr->field_local_review_username[LANGUAGE_NONE][0]['value'],
+						'userlocation' => $lr->field_local_review_userlocation[LANGUAGE_NONE][0]['value'],
+						'title' => $lr->title,
+						'date' => $lr->field_local_review_date[LANGUAGE_NONE][0]['value'],
+						'fdate' => date('m/d/Y', $lr->field_local_review_date[LANGUAGE_NONE][0]['value']),
+						'text' => $lr->field_local_review_text[LANGUAGE_NONE][0]['value'],
+						'displayname' => $lr->field_local_review_displayname[LANGUAGE_NONE][0]['value'],
+						'rating' => $lr->field_local_review_rating[LANGUAGE_NONE][0]['value'],
+						'status' => 'active',
+						'mgrtext' => $mgrtext,
+						'mgrdate' => $mgrdate,
+						'advancedurl' => array(),
+						'data' => array('width' => $width, 'max' => 5)
+					);
+
+					$local_review_arr[] = $lr_item;
+
+				}
+					return $local_review_arr;
+
+			}
+		}
+	}
+	return null;
 }

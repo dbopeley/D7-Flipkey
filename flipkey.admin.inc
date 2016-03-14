@@ -75,13 +75,23 @@ function flipkey_admin_settings() {
     '#weight' => -47,
   );
 
+  $form['flipkey_config_fs']['flipkey_star_key'] = array(
+    '#title' => t('Review Star key'),
+    '#description' => t('You will need to add a text field to the selected content types above to provide a field to display the star rating'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('flipkey_star_key', NULL),
+    '#required' => TRUE,
+    '#max_length' => 36,
+    '#weight' => -46,
+  );
+
   $form['flipkey_config_fs']['flipkey_import_threshold'] = array(
     '#title'         => t('Import Threshold'),
     '#description'   => t('Set the number of properties to import reviews for per import iteration.'),
     '#type'          => 'select',
     '#options' => array(10=>'10', 20=>'20', 30=>'30', 40=>'40', 50=>'50' ),
     '#default_value'    => variable_get('flipkey_import_threshold', 10),
-    '#weight'        => -46,
+    '#weight'        => -45,
   );
 
   $form['flipkey_config_fs']['flipkey_cron_switch'] = array(
@@ -89,7 +99,7 @@ function flipkey_admin_settings() {
     '#description'   => t('Check this box to enable invoking review imports automatically on cron.'),
     '#type'          => 'checkbox',
     '#default_value'    => variable_get('flipkey_cron_switch', 0),
-    '#weight'        => -45,
+    '#weight'        => -44,
   );
 
   $form['flipkey_config_fs']['flipkey_date_order'] = array(
@@ -98,7 +108,7 @@ function flipkey_admin_settings() {
     '#type'          => 'select',
     '#options' => array('ASC'=>'Ascending (Oldest First)','DESC' => 'Descending (Most Recent First)', 'DNO'=>'Do Not Re-order'),
     '#default_value'    => variable_get('flipkey_date_order', 'DESC'),
-    '#weight'        => -44,
+    '#weight'        => -43,
   );
 
   $form['flipkey_config_fs']['flipkey_rating_squelch'] = array(
@@ -107,7 +117,7 @@ function flipkey_admin_settings() {
     '#type'          => 'select',
     '#options' => array(0=>'Show All', 1=>'1', 2=>'2', 3=>'3', 4=>'4', 5=>'5' ),
     '#default_value'    => variable_get('flipkey_rating_squelch', 0),
-    '#weight'        => -43,
+    '#weight'        => -42,
   );
 
   $form['flipkey_config_fs']['flipkey_year_squelch'] = array(
@@ -116,7 +126,14 @@ function flipkey_admin_settings() {
     '#type'          => 'select',
     '#options' => array(0=>'No limit', 1=>'1', 2=>'2', 3=>'3', 4=>'4', 5=>'5' ),
     '#default_value'    => variable_get('flipkey_year_squelch', 0),
-    '#weight'        => -42,
+    '#weight'        => -41,
+  );
+  $form['flipkey_config_fs']['flipkey_review_filter'] = array(
+    '#title'         => t('Filter Reviews by ID'),
+    '#description'   => t('You can prevent individual reviews from appearing in the flipkey widget by entering review ids (one per line) of the reviews you want to filter out. If you do not know the review id you can find is the review source out put. In the source code, look for a data attribute called data-review-id wrapping the review you want to remove (e.g data-review-id="291214058")'),
+    '#type'          => 'textarea',
+    '#default_value'    => variable_get('flipkey_review_filter', ''),
+    '#weight'        => -40,
   );
 
 

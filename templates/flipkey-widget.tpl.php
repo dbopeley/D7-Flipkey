@@ -7,7 +7,6 @@
 // This is stupid but if we don't have a property id param for whatever reason,
 // generate a semi-unique one instead to prevent repeated IDs in the markup.
 $id = isset($widget['id']) ? $widget['id'] : mt_rand(99999, 9999999);
-
 ?>
 <div id="flipkey-widget-<?php print $id; ?>" class="flipkey-widget">
   <?php if (!isset($widget['error'])): ?>
@@ -21,7 +20,7 @@ $id = isset($widget['id']) ? $widget['id'] : mt_rand(99999, 9999999);
   </div>
   <div class="body-review-container">
     <?php foreach ($widget['reviews'] as $id => $row): ?>
-      <div class="body-review">
+      <div class="body-review" data-review-id="<?php print $row['id']; ?>">
         <h3 class="review-title">"<?php print $row['title']; ?>"</h3>
         <span class="rating-a">
           <span style="width: <?php print $row['data']['width']; ?>px;"><?php print $row['rating']; ?></span> of <?php print $widget['stats']['data']['max']; ?>
